@@ -31,9 +31,12 @@ import TableToolbar from '@ckeditor/ckeditor5-table/src/tabletoolbar';
 import TextTransformation from '@ckeditor/ckeditor5-typing/src/texttransformation';
 import CloudServices from '@ckeditor/ckeditor5-cloud-services/src/cloudservices';
 
+// Adding CKEditor IndentBlock plugin for block indentation
+import IndentBlock from '@ckeditor/ckeditor5-indent/src/indentblock';
+
 export default class ClassicEditor extends ClassicEditorBase {}
 
-// Plugins to include in the build.
+// Plugins to include in the build. (IFCEB) - Indentation for classic editor build
 ClassicEditor.builtinPlugins = [
 	Essentials,
 	UploadAdapter,
@@ -51,6 +54,7 @@ ClassicEditor.builtinPlugins = [
 	ImageToolbar,
 	ImageUpload,
 	Indent,
+	IndentBlock, // Passing the imported IndentBlock Plugin (IFCEB)
 	Link,
 	List,
 	MediaEmbed,
