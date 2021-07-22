@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2003-2020, CKSource - Frederico Knabben. All rights reserved.
+ * @license Copyright (c) 2003-2021, CKSource - Frederico Knabben. All rights reserved.
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
@@ -11,13 +11,16 @@ import { Plugin } from 'ckeditor5/src/core';
 import { ClipboardPipeline } from 'ckeditor5/src/clipboard';
 import { UpcastWriter } from 'ckeditor5/src/engine';
 
-import { modelToViewAttributeConverter, srcsetAttributeConverter } from './converters';
+import {
+	downcastImageAttribute,
+	downcastSrcsetAttribute
+} from './converters';
 
 import ImageEditing from './imageediting';
 import ImageTypeCommand from './imagetypecommand';
 import ImageUtils from '../imageutils';
 import {
-	getImageTypeMatcher,
+	getImgViewElementMatcher,
 	createImageViewElement,
 	determineImageTypeForInsertionAtSelection
 } from '../image/utils';
@@ -64,6 +67,15 @@ export default class ImageInlineEditing extends Plugin {
 			allowAttributes: [ 'alt', 'src', 'srcset' ]
 		} );
 
+		// Disallow inline images in captions (for now). This is the best spot to do that because
+		// independent packages can introduce captions (ImageCaption, TableCaption, etc.) so better this
+		// be future-proof.
+		schema.addChildCheck( ( context, childDefinition ) => {
+			if ( context.endsWith( 'caption' ) && childDefinition.name === 'imageInline' ) {
+				return false;
+			}
+		} );
+
 		this._setupConversion();
 
 		if ( editor.plugins.has( 'ImageBlockEditing' ) ) {
@@ -95,19 +107,19 @@ export default class ImageInlineEditing extends Plugin {
 			.elementToElement( {
 				model: 'imageInline',
 				view: ( modelElement, { writer } ) => imageUtils.toImageWidget(
-					createImageViewElement( writer, 'imageInline' ), writer, t( 'inline image widget' )
+					createImageViewElement( writer, 'imageInline' ), writer, t( 'image widget' )
 				)
 			} );
 
 		conversion.for( 'downcast' )
-			.add( modelToViewAttributeConverter( imageUtils, 'imageInline', 'src' ) )
-			.add( modelToViewAttributeConverter( imageUtils, 'imageInline', 'alt' ) )
-			.add( srcsetAttributeConverter( imageUtils, 'imageInline' ) );
+			.add( downcastImageAttribute( imageUtils, 'imageInline', 'src' ) )
+			.add( downcastImageAttribute( imageUtils, 'imageInline', 'alt' ) )
+			.add( downcastSrcsetAttribute( imageUtils, 'imageInline' ) );
 
 		// More image related upcasts are in 'ImageEditing' plugin.
 		conversion.for( 'upcast' )
 			.elementToElement( {
-				view: getImageTypeMatcher( editor, 'imageInline' ),
+				view: getImgViewElementMatcher( editor, 'imageInline' ),
 				model: ( viewImage, { writer } ) => writer.createElement( 'imageInline', { src: viewImage.getAttribute( 'src' ) } )
 			} );
 	}
@@ -176,7 +188,7 @@ export default class ImageInlineEditing extends Plugin {
 						Array.from( blockViewImage.getAttributes() )
 							.forEach( attribute => writer.setAttribute(
 								...attribute,
-								imageUtils.getViewImageFromWidget( blockViewImage )
+								imageUtils.findViewImgElement( blockViewImage )
 							) );
 
 						return blockViewImage.getChild( 0 );
